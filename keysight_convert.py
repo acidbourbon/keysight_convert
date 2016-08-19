@@ -5,6 +5,8 @@ convert csv files to keysight/agilent 81150A binary waveforms
 x values have to be floats between 0 and 1 (first point should start with x=0)
 y values have to be floats between -1 and +1
 
+if --normalize flag is on, input waveform will be automatically fit into the allowed value range
+
 csv format:
 
 <xval1>,<yval1>
@@ -14,7 +16,7 @@ csv format:
 
 example:
 
-./keysight_convert.py -i example.csv
+./keysight_convert.py example.csv
 
 2016 by Michael Wiebusch
 http://mwiebusch.de
@@ -29,22 +31,30 @@ import re
 def flip(num):
   return bytearray([num & 0xFF,(num & 0xFF00)>>8])
 
+#def normalize(vec):
+  #vec=vec-vec[0]
+  #vec=vec/max(abs(vec))
+  #return vec
+  
+
 
 def main():
 
   # Parse command-line arguments
   parser = argparse.ArgumentParser(usage=__doc__)
-  parser.add_argument("-i","--input", help="input file (csv)")
+  #parser.add_argument("-i","--input", help="input file (csv)")
+  parser.add_argument("filename", help="input file (csv)")
   parser.add_argument("-o","--output", help="output binary file, otherwise input filename + .wfm extension will be used")
+  parser.add_argument("-n","--normalize", help="normalize input waveform to limits of binary format", action='store_true')
   args = parser.parse_args()
 
   #remove file extension, add wfm
-  infile_base = re.split('\.[^\.]+$',args.input)[0]
+  infile_base = re.split('\.[^\.]+$',args.filename)[0]
   outfile=infile_base+".wfm"
   if args.output:
     outfile=args.output
 
-  a = np.loadtxt(open(args.input,"rb"),delimiter=",",skiprows=1)
+  a = np.loadtxt(open(args.filename,"rb"),delimiter=",",skiprows=1)
 
   #print a
 
@@ -55,6 +65,12 @@ def main():
   #plt.show()
 
   no_points = x.size
+  
+  if args.normalize:
+    print "normalizing"
+    x=x-x[0]
+    x=x/max(x)
+    y=y/max(abs(y))
   
   print "converting "+str(no_points)+" data points"
   
@@ -79,7 +95,7 @@ def main():
 
   #append data points
   for i in range(0,no_points):
-    b=b+flip(min(0x3FFF,int(0x4000*x[i])))
+    b=b+flip(min(0x4000,int(0x4000*x[i])))
     b=b+flip(0)
     b=b+flip(int(0x1FFF*y[i]))
     b=b+flip(0)
