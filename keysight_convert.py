@@ -95,7 +95,7 @@ def main():
 
   #append data points
   for i in range(0,no_points):
-    b=b+flip(min(0x4000,int(0x4000*x[i])))
+    b=b+flip(min(0x3FFF,int(0x4000*x[i])))
     b=b+flip(0)
     b=b+flip(int(0x1FFF*y[i]))
     b=b+flip(0)
